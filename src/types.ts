@@ -4,6 +4,8 @@ export interface AIConfig {
   provider: AIProvider;
   modelId: string;
   apiKey: string;
+  translationLanguage?: string;
+  translationProvider?: 'ai' | 'free';
 }
 
 export interface Character {
@@ -27,5 +29,6 @@ export interface Message {
   emotion?: string;
   correction?: string;
   suggestions?: string[];
+  translation?: string;
   timestamp: number;
 }

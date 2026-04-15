@@ -1,6 +1,6 @@
 {
   "common": {
-    "welcome": "Chào mừng đến với The Synthetic Muse",
+    "welcome": "Chào mừng đến với Virtual Character AI",
     "dashboard": "Nhân vật của Bạn",
     "dashboard_desc": "Quản lý và tương tác với các nhân vật ảo của bạn. Mỗi nhân vật là một sự tổng hợp độc đáo giữa logic và thẩm mỹ.",
     "forge_identity": "Tạo Nhân vật",
@@ -63,6 +63,10 @@
     "suggestions": "Gợi ý trả lời",
     "offline_mode": "Chế độ Ngoại tuyến - AI cần internet",
     "voice_setting": "Giọng nói Nhân vật",
+    "translation_settings": "Thiết lập Dịch thuật",
+    "translation_provider": "Phương thức Dịch",
+    "target_language": "Ngôn ngữ đích",
+    "translation": "Bản dịch",
     "start_voice": "Bắt đầu nhập bằng giọng nói",
     "stop_voice": "Dừng nghe",
     "speech_not_supported": "Trình duyệt của bạn không hỗ trợ nhận dạng giọng nói.",

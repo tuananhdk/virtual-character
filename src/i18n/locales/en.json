@@ -1,6 +1,6 @@
 {
   "common": {
-    "welcome": "Welcome to The Synthetic Muse",
+    "welcome": "Welcome to Virtual Character AI",
     "dashboard": "Your Characters",
     "dashboard_desc": "Manage and interact with your virtual characters. Each persona is a unique synthesis of logic and aesthetic.",
     "forge_identity": "Create Character",
@@ -63,6 +63,10 @@
     "suggestions": "Suggestions",
     "offline_mode": "Offline Mode - AI requires internet",
     "voice_setting": "Character Voice",
+    "translation_settings": "Translation Settings",
+    "translation_provider": "Translation Method",
+    "target_language": "Target Language",
+    "translation": "Translation",
     "start_voice": "Start Voice Input",
     "stop_voice": "Stop Listening",
     "speech_not_supported": "Your browser does not support speech recognition.",

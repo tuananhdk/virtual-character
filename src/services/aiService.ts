@@ -135,6 +135,48 @@ Keep the emotion/action part descriptive, nuanced, and relevant to your characte
   }
 }
 
+export async function translateText(text: string, targetLanguage: string, config: AIConfig): Promise<string> {
+  if (config.translationProvider === 'free') {
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLanguage}`
+      );
+      const data = await response.json();
+      if (data.responseData && data.responseData.translatedText) {
+        return data.responseData.translatedText;
+      }
+    } catch (error) {
+      console.error("Free translation error, falling back to AI:", error);
+    }
+  }
+
+  const apiKey = config.apiKey || (config.provider === 'google' ? process.env.GEMINI_API_KEY : '');
+  if (!apiKey) throw new Error("API Key is missing.");
+
+  const prompt = `Translate the following text to ${targetLanguage}. Provide ONLY the translated text, no explanations or extra characters.\n\nText: ${text}`;
+
+  if (config.provider === 'google') {
+    const ai = new GoogleGenAI({ apiKey: apiKey });
+    let modelName = config.modelId || "gemini-3-flash-preview";
+    if (!modelName.startsWith('models/')) {
+      modelName = `models/${modelName}`;
+    }
+    
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+    return response.text || "";
+  } else {
+    const openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true });
+    const response = await openai.chat.completions.create({
+      model: config.modelId || "gpt-4o",
+      messages: [{ role: 'user', content: prompt }],
+    });
+    return response.choices[0]?.message?.content || "";
+  }
+}
+
 export function parseResponse(text: string): { emotion: string; content: string; correction?: string; suggestions?: string[] } {
   let emotion = "";
   let content = text;

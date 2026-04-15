@@ -31,12 +31,13 @@ import {
   Volume2,
   VolumeX,
   Mic,
-  MicOff
+  MicOff,
+  Globe
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Character, Message, AIConfig, AIProvider } from './types';
-import { streamChat, parseResponse } from './services/aiService';
+import { streamChat, parseResponse, translateText } from './services/aiService';
 import { cn } from './lib/utils';
 
 const INITIAL_CHARACTERS: Character[] = [
@@ -100,7 +101,9 @@ const INITIAL_CHARACTERS: Character[] = [
 const DEFAULT_AI_CONFIG: AIConfig = {
   provider: 'google',
   modelId: 'gemini-3-flash-preview',
-  apiKey: process.env.GEMINI_API_KEY || ''
+  apiKey: process.env.GEMINI_API_KEY || '',
+  translationLanguage: 'vi',
+  translationProvider: 'free'
 };
 
 export default function App() {
@@ -374,8 +377,7 @@ export default function App() {
         <div className={cn("p-6 flex items-center", isSidebarCollapsed ? "justify-center" : "justify-between")}>
           {!isSidebarCollapsed && (
             <div>
-              <h1 className="text-xl font-black tracking-tighter text-primary uppercase font-headline text-nowrap">Virtual Character</h1>
-              <p className="text-[8px] text-on-surface-variant tracking-widest mt-0.5 opacity-60">AI STUDIO</p>
+              <h1 className="text-xl font-black tracking-tighter text-primary uppercase font-headline text-nowrap">Virtual Character AI</h1>
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -463,7 +465,7 @@ export default function App() {
               </button>
             )}
             <h2 className="text-base sm:text-lg font-bold bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent font-headline truncate">
-              {view === 'dashboard' ? 'The Synthetic Muse' : view === 'creator' ? (editingCharacterId ? t('common.edit') : t('common.new_character')) : view === 'settings' ? t('common.settings') : activeCharacter?.name}
+              {view === 'dashboard' ? 'Virtual Character AI' : view === 'creator' ? (editingCharacterId ? t('common.edit') : t('common.new_character')) : view === 'settings' ? t('common.settings') : activeCharacter?.name}
             </h2>
           </div>
 
@@ -1022,6 +1024,46 @@ function SettingsView({
             )}
           </button>
         </div>
+
+        <div className="pt-6 border-t border-outline-variant/10 space-y-6">
+          <h4 className="text-sm font-bold text-on-surface mb-4">{t('common.translation_settings') || 'Translation Settings'}</h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">{t('common.translation_provider') || 'Translation Method'}</label>
+              <select 
+                className="w-full bg-surface-container-highest border-none rounded-xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary/50 transition-all appearance-none cursor-pointer" 
+                value={tempConfig.translationProvider || 'free'}
+                onChange={e => setTempConfig({...tempConfig, translationProvider: e.target.value as 'ai' | 'free'})}
+              >
+                <option value="free" className="bg-surface-container-highest">Free (MyMemory API)</option>
+                <option value="ai" className="bg-surface-container-highest">AI Translation (Gemini/OpenAI)</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">{t('common.target_language') || 'Target Language'}</label>
+              <select 
+                className="w-full bg-surface-container-highest border-none rounded-xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary/50 transition-all appearance-none cursor-pointer" 
+                value={tempConfig.translationLanguage || 'vi'}
+                onChange={e => setTempConfig({...tempConfig, translationLanguage: e.target.value})}
+              >
+                <option value="vi" className="bg-surface-container-highest">Tiếng Việt</option>
+                <option value="en" className="bg-surface-container-highest">English</option>
+                <option value="fr" className="bg-surface-container-highest">Français</option>
+                <option value="ja" className="bg-surface-container-highest">日本語</option>
+                <option value="ko" className="bg-surface-container-highest">한국어</option>
+                <option value="zh" className="bg-surface-container-highest">中文</option>
+              </select>
+            </div>
+          </div>
+          
+          {tempConfig.translationProvider === 'free' && (
+            <p className="text-[10px] text-on-surface-variant italic px-1">
+              * Free method uses MyMemory API. It's free but might be less accurate than AI for complex sentences.
+            </p>
+          )}
+        </div>
       </section>
 
       {/* Data Management Section */}
@@ -1170,6 +1212,7 @@ function ChatView({
   const [error, setError] = useState<string | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1203,6 +1246,28 @@ function ChatView({
     
     setIsSpeaking(messageId);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleTranslate = async (text: string, messageId: string) => {
+    if (isTranslating) return;
+    
+    const msg = history.find(m => m.id === messageId);
+    if (msg?.translation) return;
+
+    setIsTranslating(messageId);
+    try {
+      const targetLang = aiConfig.translationLanguage || 'vi';
+      const translated = await translateText(text, targetLang, aiConfig);
+      
+      const newHistory = history.map(m => 
+        m.id === messageId ? { ...m, translation: translated } : m
+      );
+      onUpdateHistory(newHistory);
+    } catch (err) {
+      console.error("Translation error:", err);
+    } finally {
+      setIsTranslating(null);
+    }
   };
 
   const toggleListening = () => {
@@ -1375,16 +1440,29 @@ function ChatView({
                         {msg.emotion}
                       </div>
                       {msg.role === 'model' && (
-                        <button 
-                          onClick={() => handleSpeak(msg.content, msg.id)}
-                          className={cn(
-                            "p-1 rounded-full transition-all hover:bg-white/10",
-                            isSpeaking === msg.id ? "text-primary animate-pulse" : "text-on-surface-variant"
-                          )}
-                          title="Listen"
-                        >
-                          {isSpeaking === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleTranslate(msg.content, msg.id)}
+                            className={cn(
+                              "p-1 rounded-full transition-all hover:bg-white/10",
+                              isTranslating === msg.id ? "text-primary animate-spin" : "text-on-surface-variant"
+                            )}
+                            title="Translate"
+                            disabled={!!msg.translation}
+                          >
+                            <Globe size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleSpeak(msg.content, msg.id)}
+                            className={cn(
+                              "p-1 rounded-full transition-all hover:bg-white/10",
+                              isSpeaking === msg.id ? "text-primary animate-pulse" : "text-on-surface-variant"
+                            )}
+                            title="Listen"
+                          >
+                            {isSpeaking === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1417,6 +1495,18 @@ function ChatView({
                         <div className="markdown-body">
                           <ReactMarkdown>{msg.content}</ReactMarkdown>
                         </div>
+
+                        {msg.translation && (
+                          <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-tertiary uppercase tracking-wider">
+                              <Globe size={12} />
+                              {t('common.translation') || 'Translation'}
+                            </div>
+                            <p className="text-xs text-on-surface-variant bg-tertiary/5 p-2 rounded-lg italic border-l-2 border-tertiary">
+                              {msg.translation}
+                            </p>
+                          </div>
+                        )}
                         
                         {msg.correction && (
                           <div className="mt-3 pt-3 border-t border-white/5 space-y-2">

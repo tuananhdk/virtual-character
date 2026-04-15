@@ -39,6 +39,7 @@ import ReactMarkdown from 'react-markdown';
 import { Character, Message, AIConfig, AIProvider } from './types';
 import { streamChat, parseResponse, translateText } from './services/aiService';
 import { cn } from './lib/utils';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const INITIAL_CHARACTERS: Character[] = [
   {
@@ -783,6 +784,7 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+      <SpeedInsights />
     </div>
   );
 }
